@@ -1,59 +1,56 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
 
-/*
- * Сотов Константин Алексеевич, 117 группа
- * sotov@twistea.su	+7 914 329 50 01
- *
- * Данный код загружает динамическую библиотеку,
- * имя которой передано в аргументах командной строки,
- * и считает интеграл функции "f", если она есть
- * в этой динамической библиотеке.
- */
+#define _USE_MATH_DEFINES
+#include <math.h>
 
-#include <stdio.h> 	// printf, scanf
-#include <stdlib.h> 	// exit
-#include <dlfcn.h>	// dlopen, dlsym, dlclose
+struct point {
+	float x, y;
+};
 
+struct circle {
+	// center not needed for this task
+	/*struct point center;*/
+	float rad;
+};
 
-// Integrates function f from a to b with <sums> steps.
-// Uses "naive" and straightforward integration technique
-// Assumes a < b
-double integral(double (*f)(double), double a, double b, int sums) {
-	double result = 0;
-	const double dx = (b-a)/sums;
-	for (double i = a; i < b; i += dx)
-		result += dx * f(i);
-	return result;
+char in_circle(const struct circle *c, const struct point p) {
+	/*p.x -= c->x;*/
+	/*p.y -= c->y;*/
+	return p.x * p.x + p.y * p.y < c->rad*c->rad;
 }
 
-int main(int argc, char* argv[]) {
-	if (argc != 2) {
-		printf("Недостаточно аргументов. использование:\n"
-			"%s <путь к динамической библиотеке>\n", argv[0]);
-		exit(EXIT_FAILURE);
+float calculate_pi(int iterations) {
+	int in = 0, out = 0;
+	int *arr[2] = {&out, &in};
+	const struct circle c = {.rad = 1.0f};
+	for (int i = 0; i < iterations; ++i) {
+		struct point p = {
+			.x = rand() % 2000000u / 1e6f - 1,
+			.y = rand() % 2000000u / 1e6f - 1
+		};
+		++*arr[in_circle(&c, p)];
 	}
-	// Open the dynamic library
-	void* handle = dlopen(argv[1], RTLD_NOW);
-	if (handle == NULL) {
-		printf("ERROR: %s\n", dlerror());
-		exit(EXIT_FAILURE);
-	}
-	// Locate the function
-	void* f = dlsym(handle, "f");
-	if (f == NULL) {
-		printf("ERROR: %s", dlerror());
-		dlclose(handle);
-		exit(EXIT_FAILURE);
-	}
+	return (float)in/iterations * 4;
+}
 
-	// Input-output block
-	const char* fullname 
-		= "Сотов Константин Алексеевич";
-	printf("Автор: %s\n", fullname);
-	double a, b;
-	puts("Введите нижнюю и верхнюю границы интегрирования через пробел");
-	scanf("%lf %lf", &a, &b);
-	printf("Интеграл f от %lf до %lf = %lf\n",
-		a, b, integral(f, a, b, 10000));
-
-	exit(EXIT_SUCCESS);
+int main(int argc, char *argv[]) {
+	srand(time(NULL));
+	int iters;
+	if (argc == 2) {
+		iters = atoi(argv[1]);
+	} else {
+		fputs("Iterations: ", stdout);
+		if (!scanf("%i", &iters)) {
+			fputs("Input a valid number\n", stderr);
+			return EXIT_FAILURE;
+		}
+	}
+	float pi = calculate_pi(iters);
+	float err = fabs(M_PI-pi)/M_PI;
+	printf(	"calculated pi: %.4f, actual pi: %.4f\n"
+		"error: %.2f%%\n",
+		pi, M_PI, err * 100);
+	return EXIT_SUCCESS;
 }
