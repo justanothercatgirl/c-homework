@@ -1,6 +1,6 @@
-montecarlo: main.c
+numrep: main.c
 	cc $^ -o $@
 
 .PHONY: clean
 clean: 
-	rm -rf montecarlo
+	rm -rf numrep
