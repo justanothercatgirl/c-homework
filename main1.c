@@ -3,7 +3,7 @@
 #include <time.h>
 #include <math.h>
 
-#define GEN_MAX 1000000
+#define GEN_MAX 1000000000
 
 static int tenpow(int pow) {
 	int base = 10;
