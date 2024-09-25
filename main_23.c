@@ -32,11 +32,15 @@ double __sincos(double x) {
 	return sin(2*x)/2;
 }
 
+double sin2x(double x) {
+	return sin(2*x);
+}
+
 /// generates the table as asked in the task.
-/// The core function of this file.
-struct dval* get_table(func_t f, double start, double end, double step, long *length) {
+/// The core function for task 2
+struct dval *get_table(func_t f, double start, double end, double step, long *length) {
 	long tlength = lround((end-start)/step);
-	struct dval* vals = calloc(tlength, sizeof(struct dval));
+	struct dval *vals = calloc(tlength, sizeof(struct dval));
 	for (long i = 0; i < tlength; ++i) {
 		double x = start + step * i;
 		// Not accumulative because if step is too small, 
@@ -47,15 +51,33 @@ struct dval* get_table(func_t f, double start, double end, double step, long *le
 	return vals;
 }
 
+/// generates the table for derivative of function f.
+/// The core function for task 3
+struct dval *differentiate(func_t f, double start, double end, double step, long *length) {
+	long tlength = lround((end-start)/step);
+	struct dval *vals = calloc(tlength, sizeof(struct dval));
+	for (long i = 0; i < tlength; ++i) {
+		double x = start + step * i;
+		double xi = start + step * (1+i);
+		double y = (f(xi) - f(x))/step;
+		vals[i] = (struct dval){.x = x, .y = y};
+	}
+	*length = tlength;
+	return vals;
+}
+
 void print_help(int status) {
 	const char *help = 
-		"Usage: ./task2 -f func_name -o output_file [-h]\n"
+		"This program is Licensed under 'the unlicense license'\n\n"
+		"Usage: ./t23 -f func_name -o output_file [-x number -h -d]\n"
 		"\t-h: this help\n"
-		"\t-f: function: either 'sin2', 'cos2' or 'sincos'.\n"
+		"\t-d: differentiate function (do task 3)\n"
+		"\t-f: function: either 'sin2', 'cos2', 'sincos', 'tg' or 'sin2x' .\n"
 		"\t\tif compiled with -DDYNAMIC_LOAD, file name with dynamic function.\n"
-		"\t-o: output file.\n\n"
+		"\t-o: output file.\n"
+		"\t-x: only needed with -d flag - differentiation step (the dx)\n\n"
 		"NOTE: the function in dynamic library must be named 'f'.\n"
-		"NOTE 2: with flag -DPIPE_GNUPLOT output will be piped in gnuplot\n.";
+		"NOTE 2: with flag -DPIPE_GNUPLOT output will be piped in gnuplot\n";
 	puts(help);
 	exit(status);
 }
@@ -69,6 +91,10 @@ func_t get_function(const char* name) {
 		return &sin2;
 	if (!strcmp(name, "sincos"))
 		return &__sincos;
+	if (!strcmp(name, "tg"))
+		return &tan;
+	if (!strcmp(name, "sin2x"))
+		return &sin2x;
 #ifndef DYNAMIC_LOAD
 	fputs("ERROR: unknown function. To use dynamic loading, compile with `-DDYNAMIC_LOAD`.\n", stderr);
 	exit(EXIT_FAILURE);
@@ -93,6 +119,8 @@ void print_table(FILE* stream, const struct dval *table, long size) {
 int main(int argc, char *argv[]) {
 	func_t function = NULL;
 	const char *out = NULL;
+	char task2 = 1;
+	float dx = 0.0;
 	// casual argument loop
 	for (int i = 1; i < argc; ++i) {
 		if (!strcmp(argv[i], "-h"))
@@ -101,12 +129,23 @@ int main(int argc, char *argv[]) {
 			function = get_function(argv[++i]);
 		else if (!strcmp(argv[i], "-o"))
 			out = argv[++i];
+		else if (!strcmp(argv[i], "-d"))
+			task2 = 0;
+		else if (!strcmp(argv[i], "-x"))
+			dx = atof(argv[++i]);
 		else print_help(EXIT_FAILURE);
 	}
-	if (!function || !out) print_help(EXIT_SUCCESS);
+	// if function or output file is not set, or if dx is not set for task3,
+	// then exit with failure
+	if ((!function || !out) || (!task2 && dx == 0.0))
+		print_help(EXIT_FAILURE);
 
 	long table_len;
-	struct dval *table = get_table(function, 0, 3, 0.01, &table_len);
+	struct dval *table = NULL;
+	if (task2)
+		table = get_table(function, 0, 3, 0.01, &table_len);
+	else // task 3
+		table = differentiate(function, -3, 3, dx, &table_len);
 
 	// print data to stdout and to file
 	print_table(stdout, table, table_len);

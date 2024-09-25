@@ -1,5 +1,5 @@
 
-all: t1_a t1_b t2 test.so
+all: t1_a t1_b t23 test.so
 
 T2FLAGS := -Wall
 
@@ -17,7 +17,7 @@ t1_a: main_1.c
 t1_b: main_1.c
 	$(CC) -DPROG_MONTE_CARLO $^ -o $@
 
-t2: main_2.c
+t23: main_23.c
 	$(CC) $(T2FLAGS) $^ -o $@ $(T2LINKS)
 
 test.so: test_f.c
@@ -26,5 +26,5 @@ test.so: test_f.c
 .PHONY: clean
 
 clean:
-	rm -rf t1_a t1_b t2 test.so
+	rm -rf t1_a t1_b t23 test.so
 
