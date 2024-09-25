@@ -3,9 +3,27 @@
 #include <string.h>
 #include <math.h>
 
+struct dval { double x, y; };
+typedef double (*func_t)(double);
+
 #ifdef PIPE_GNUPLOT
 	#include <unistd.h>
 	#include <fcntl.h>
+	
+	void print_table(FILE*, const struct dval *, long int);
+	/// This function is creating a 'gnuplot' pipe 
+	/// and writing data to it to be plotted
+	void pipe_gnuplot(struct dval *table, long len) {
+		FILE* gp = popen("gnuplot", "w");
+		if (!gp) return;
+		fputs("plot '-' with lines\n", gp);
+		print_table(gp, table, len);
+		fputs("e\n", gp);
+		fflush(gp);
+
+		getchar();
+		pclose(gp);
+	}
 #endif // PIPE_GNUPLOT
 
 #ifdef DYNAMIC_LOAD
@@ -13,25 +31,18 @@
 	void* handle = NULL;
 #endif // DYNAMIC_LOAD
 
-struct dval { double x, y; };
-
-typedef double (*func_t)(double);
-
 double sin2(double x) {
 	double y = sin(x);
 	return y*y;
 }
-
 double cos2(double x) {
 	double y = cos(x);
 	return y*y;
 }
-
 double __sincos(double x) {
 	// sin(x)cos(x) = sin(2x)/2
 	return sin(2*x)/2;
 }
-
 double sin2x(double x) {
 	return sin(2*x);
 }
@@ -65,6 +76,13 @@ struct dval *differentiate(func_t f, double start, double end, double step, long
 	*length = tlength;
 	return vals;
 }
+
+void print_table(FILE* stream, const struct dval *table, long size) {
+	for (long i = 0; i < size; ++i) {
+		fprintf(stream, "%lg %lg\n", table[i].x, table[i].y);
+	}
+}
+
 
 void print_help(int status) {
 	const char *help = 
@@ -110,12 +128,6 @@ fail:
 #endif // DYNAMIC_LOAD
 }
 
-void print_table(FILE* stream, const struct dval *table, long size) {
-	for (long i = 0; i < size; ++i) {
-		fprintf(stream, "%lg %lg\n", table[i].x, table[i].y);
-	}
-}
-
 int main(int argc, char *argv[]) {
 	func_t function = NULL;
 	const char *out = NULL;
@@ -153,21 +165,10 @@ int main(int argc, char *argv[]) {
 	if (f) print_table(f, table, table_len);
 	else perror(out);
 
-	// This section is creating a 'gnuplot' pipe 
-	// and writing data to it to be plotted
 #ifdef PIPE_GNUPLOT 
-	FILE* gp = popen("gnuplot", "w");
-	if (!gp) goto cleanup;
-	fputs("plot '-' with lines\n", gp);
-	print_table(gp, table, table_len);
-	fputs("e\n", gp);
-	fflush(gp);
-
-	getchar();
-	pclose(gp);
+	pipe_gnuplot(table, table_len);
 #endif // PIPE_GNUPLOT
 
-cleanup:
 	fclose(f);
 	free(table);
 #ifdef DYNAMIC_LOAD
