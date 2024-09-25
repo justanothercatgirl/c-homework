@@ -16,6 +16,9 @@ typedef double (*func_t)(double);
 	void pipe_gnuplot(struct dval *table, long len) {
 		FILE* gp = popen("gnuplot", "w");
 		if (!gp) return;
+#ifdef TERMINAL_PLOT
+		fputs("set terminal block\n", gp);
+#endif // TERMINAL_PLOT
 		fputs("plot '-' with lines\n", gp);
 		print_table(gp, table, len);
 		fputs("e\n", gp);
