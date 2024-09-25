@@ -69,8 +69,8 @@ struct dval *differentiate(func_t f, double start, double end, double step, long
 	struct dval *vals = calloc(tlength, sizeof(struct dval));
 	for (long i = 0; i < tlength; ++i) {
 		double x = start + step * i;
-		double xi = start + step * (1+i);
-		double y = (f(xi) - f(x))/step;
+		// central difference 
+		double y = (f(x+step) - f(x-step))/ (2*step);
 		vals[i] = (struct dval){.x = x, .y = y};
 	}
 	*length = tlength;
