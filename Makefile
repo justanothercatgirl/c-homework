@@ -8,9 +8,6 @@ ifneq ($(OS),Windows_NT)
 	T2LINKS = -lm -ldl
 	ifneq (, $(shell which gnuplot))
 		T2FLAGS += -DPIPE_GNUPLOT
-		ifeq (, ${DISPLAY})
-			T2FLAGS += -DTERMINAL_PLOT
-		endif
 	endif
 endif
 
