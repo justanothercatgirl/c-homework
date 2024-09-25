@@ -10,12 +10,10 @@
 
 #ifdef DYNAMIC_LOAD
 	#include <dlfcn.h>
-void* handle = NULL;
+	void* handle = NULL;
 #endif // DYNAMIC_LOAD
 
-struct dval {
-	double x, y;
-};
+struct dval { double x, y; };
 
 typedef double (*func_t)(double);
 
@@ -34,6 +32,8 @@ double __sincos(double x) {
 	return sin(2*x)/2;
 }
 
+/// generates the table as asked in the task.
+/// The core function of this file.
 struct dval* get_table(func_t f, double start, double end, double step, long *length) {
 	long tlength = lround((end-start)/step);
 	struct dval* vals = calloc(tlength, sizeof(struct dval));
@@ -60,6 +60,8 @@ void print_help(int status) {
 	exit(status);
 }
 
+/// Get the function based on the command line flags - either use 
+/// existing or load one from dynamic library
 func_t get_function(const char* name) {
 	if (!strcmp(name, "cos2"))
 		return &cos2;
@@ -91,6 +93,7 @@ void print_table(FILE* stream, const struct dval *table, long size) {
 int main(int argc, char *argv[]) {
 	func_t function = NULL;
 	const char *out = NULL;
+	// casual argument loop
 	for (int i = 1; i < argc; ++i) {
 		if (!strcmp(argv[i], "-h"))
 			print_help(EXIT_SUCCESS);
@@ -101,19 +104,21 @@ int main(int argc, char *argv[]) {
 		else print_help(EXIT_FAILURE);
 	}
 	if (!function || !out) print_help(EXIT_SUCCESS);
+
 	long table_len;
 	struct dval *table = get_table(function, 0, 3, 0.01, &table_len);
+
+	// print data to stdout and to file
 	print_table(stdout, table, table_len);
 	FILE *f = fopen(out, "w+");
-	if (f) { 
-		print_table(f, table, table_len);
-		fflush(f);
-	}
+	if (f) print_table(f, table, table_len);
 	else perror(out);
 
+	// This section is creating a 'gnuplot' pipe 
+	// and writing data to it to be plotted
 #ifdef PIPE_GNUPLOT 
 	FILE* gp = popen("gnuplot", "w");
-	if (!gp) goto exit;
+	if (!gp) goto cleanup;
 	fputs("plot '-' with lines\n", gp);
 	print_table(gp, table, table_len);
 	fputs("e\n", gp);
@@ -123,7 +128,7 @@ int main(int argc, char *argv[]) {
 	pclose(gp);
 #endif // PIPE_GNUPLOT
 
-exit:
+cleanup:
 	fclose(f);
 	free(table);
 #ifdef DYNAMIC_LOAD
