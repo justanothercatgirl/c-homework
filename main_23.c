@@ -135,6 +135,7 @@ int main(int argc, char *argv[]) {
 	func_t function = NULL;
 	const char *out = NULL;
 	char task2 = 1;
+	char verbose = 1;
 	float dx = 0.0;
 	// casual argument loop
 	for (int i = 1; i < argc; ++i) {
@@ -148,6 +149,8 @@ int main(int argc, char *argv[]) {
 			task2 = 0;
 		else if (!strcmp(argv[i], "-x"))
 			dx = atof(argv[++i]);
+		else if (!strcmp(argv[i], "-q"))
+			verbose = 0;
 		else print_help(EXIT_FAILURE);
 	}
 	// if function or output file is not set, or if dx is not set for task3,
@@ -163,7 +166,8 @@ int main(int argc, char *argv[]) {
 		table = differentiate(function, -3, 3, dx, &table_len);
 
 	// print data to stdout and to file
-	print_table(stdout, table, table_len);
+	
+	if (verbose) print_table(stdout, table, table_len);
 	FILE *f = fopen(out, "w+");
 	if (f) print_table(f, table, table_len);
 	else perror(out);
