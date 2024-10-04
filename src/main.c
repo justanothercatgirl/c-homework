@@ -14,11 +14,13 @@
 
 #define BLINK_TERM "\x1b[5m"
 #define RESET_TERM "\x1b[0m"
-#define FIFO_NAME "/tmp/compiler.fifo"
+#define FIFO_NAME "/tmp/compiler.tmp"
 #define SYMNAME "f"
 #define RDCHUNK 1024
 
-void *sohandle;
+void *sohandle = NULL;
+
+#define defer(val) do {ret = val; goto exit;} while(0)
 
 // This will be the type of the function
 typedef double(*func_t)(double);
@@ -65,35 +67,38 @@ func_t input_and_compile(void) {
 	puts("Напечатайте функцию от x используя синтаксис С и функции библиотеки cmath: \n"	
 	     "(например, 'atan(x) / (1-exp(2*x))').\n"
 	     "Закончите ввод, нажав enter." BLINK_TERM);
+	func_t ret;
+	char *buffer = NULL, *source = NULL;
 
 	// input the function
 	size_t blen = 1024;
-	char *buffer = malloc(sizeof (char) * blen);
+	buffer = malloc(sizeof (char) * blen);
 	blen = read(STDIN_FILENO, buffer, 1024);
 	buffer[--blen] = '\0';
-	if (blen <= 0) return NULL;
+	if (blen <= 0) defer(NULL);
+	puts(RESET_TERM);
 
 	// format the source
 	const char *fmt = 
 		"#include <math.h>\n"
 		"double " SYMNAME "(double x) { return %s; }\n";
 	size_t sourcelen = strlen(fmt) - strlen("%s") + blen + 1;
-	char *source = malloc(sizeof (char) * sourcelen);
+	source = malloc(sizeof (char) * sourcelen);
 	snprintf(source, sourcelen, fmt, buffer);
 
 	// spawn the compiler process
 	FILE *cc = popen("cc -shared -fPIE -fPIC -o " FIFO_NAME " -xc - -lm", "w");
 	fwrite(source, sizeof (char), sourcelen - 1, cc);
-	fflush(cc);
-	if (ferror(cc)) return NULL;
-	if (pclose(cc) != 0) return NULL;
+	if (ferror(cc)) { pclose(cc); defer(NULL); }
+	if (pclose(cc) != 0) defer(NULL);
 
 	// load dynamic library 
 	sohandle = dlopen(FIFO_NAME, RTLD_NOW);
-	if (!sohandle) return NULL;
-	func_t ret = dlsym(sohandle, SYMNAME);
+	if (!sohandle) defer(NULL);
+	ret = dlsym(sohandle, SYMNAME);
 
 	// free resources and return
+exit:
 	free(buffer);
 	free(source);
 	return ret;
@@ -167,6 +172,7 @@ int main(void) {
 	}
 	printf("Результат: %lf\n", res);
 exit:
-	dlclose(sohandle);
+	if (sohandle) dlclose(sohandle);
+	remove(FIFO_NAME);
 	return 0;
 }

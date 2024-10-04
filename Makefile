@@ -15,9 +15,9 @@ build/integral.o: src/integral.c build
 task4: build/roots.o build/integral.o src/main.c 
 	$(CC) $(CFLAGS) -o $@ $^ -lm -ldl 
 
-.PHONY: run clean
+.PHONY: clean
 
-run: task4
+run:
 	./task4
 
 clean:
