@@ -10,7 +10,7 @@ char is_root_ok(void) {
 }
 
 // метод дихтомии
-double sol_binsr(f_t f, double a, double b, double ex, double ey) {
+double sol_binsr(func_t f, double a, double b, double ex, double ey) {
 	if (copysign(1.0, f(a)) == copysign(1.0, f(b))) {
 		root_ok = 0;
 		return NAN;
@@ -27,7 +27,7 @@ double sol_binsr(f_t f, double a, double b, double ex, double ey) {
 }
 
 // метод хорд
-double sol_chord(f_t f, double a, double b, double ex, double ey) {
+double sol_chord(func_t f, double a, double b, double ex, double ey) {
 	if (copysign(1.0, f(a)) == copysign(1.0, f(b))) {
 		root_ok = 0;
 		return NAN;
@@ -46,7 +46,7 @@ double sol_chord(f_t f, double a, double b, double ex, double ey) {
 }
 
 // метод касательных (Ньютона)
-double sol_newtn(f_t f, double x0, double ex, double ey) {
+double sol_newtn(func_t f, double x0, double ex, double ey) {
 	const double dx = 1e-6;
 	double diff = x0+2*ex;
 
@@ -71,7 +71,7 @@ double sol_newtn(f_t f, double x0, double ex, double ey) {
 }
 
 // метод итераций
-double sol_itern(f_t f, double x0, double ex, double ey) {
+double sol_itern(func_t f, double x0, double ex, double ey) {
 	const double dx = 1e-6;
 	double diff = x0 + 2*ex;
 

@@ -5,8 +5,7 @@
 double accrc = 10000.0;
 
 // интеграл прямоугольниками
-double int_rect(f_t f, double a, double b) {
-	// f(x + dx/2) * dx
+double int_rect(func_t f, double a, double b) {
 	const double dx = (b-a) / accrc;
 	const double dx_2 = dx / 2.0;
 	double sum = 0.0;
@@ -16,8 +15,7 @@ double int_rect(f_t f, double a, double b) {
 }
 
 // интеграл трапециями
-double int_trap(f_t f, double a, double b) {
-	// ( f(x) + f(x+dx) )/2 * dx
+double int_trap(func_t f, double a, double b) {
 	const double dx = (b-a) / accrc;
 	double sum = 0.0;
 	for (double i = a; i < b; i += dx)
@@ -26,7 +24,7 @@ double int_trap(f_t f, double a, double b) {
 }
 
 // интегрирование параболами
-double int_simp(f_t f, double a, double b) {
+double int_simp(func_t f, double a, double b) {
 	const double dx = (b-a) / accrc;
 	const double dx_2 = dx / 2;
 	const double dx_6 = dx / 6;

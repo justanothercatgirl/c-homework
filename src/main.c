@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 #include <unistd.h>
 #include <sys/fcntl.h>
@@ -22,12 +21,17 @@
 void *sohandle;
 
 // This will be the type of the function
-typedef double(*f_t)(double);
+typedef double(*func_t)(double);
 
+typedef double(*calc2_t)(func_t, double, double);
+typedef double(*calc3_t)(func_t, double, double, double);
+typedef double(*calc4_t)(func_t, double, double, double, double);
+
+// для выбора того, что делать с функцией
 enum optype {
 	// решение уравнений
 	SOL_BINSR, // дихтомии
-	SOL_HORDE, // хорды
+	SOL_CHORD, // хорды
 	SOL_NEWTN, // касательные
 	SOL_ITERN, // итерации
 	// численное интегрирование
@@ -36,8 +40,28 @@ enum optype {
 	INT_SIMP, // симпсон
 };
 
+struct funcdescr {
+	void *f;
+	int argc;
+	const char *descr;
+};
+
+#define DESCR2 "начало и конец области интегрирования\n"
+#define DESCR3 "начальное приближение, допустимую погрешность корня и невязку\n"
+#define DESCR4 "левую и правую границы поиска, допустимую погрешность корня и невязку\n"
+
+static struct funcdescr functions[] = {
+	[SOL_BINSR] = {&sol_binsr, 4, DESCR4},
+	[SOL_CHORD] = {&sol_chord, 4, DESCR4},
+	[SOL_NEWTN] = {&sol_newtn, 3, DESCR3},
+	[SOL_ITERN] = {&sol_itern, 3, DESCR3},
+	[INT_RECT] = {&int_rect, 2, DESCR2},
+	[INT_TRAP] = {&int_trap, 2, DESCR2},
+	[INT_SIMP] = {&int_simp, 2, DESCR2},
+};
+
 // Function that reads Your function, compiles and loads it.
-f_t input_and_compile(void) {
+func_t input_and_compile(void) {
 	puts("Напечатайте функцию от x используя синтаксис С и функции библиотеки cmath: \n"	
 	     "(например, 'atan(x) / (1-exp(2*x))').\n"
 	     "Закончите ввод, нажав enter." BLINK_TERM);
@@ -67,7 +91,7 @@ f_t input_and_compile(void) {
 	// load dynamic library 
 	sohandle = dlopen(FIFO_NAME, RTLD_NOW);
 	if (!sohandle) return NULL;
-	f_t ret = dlsym(sohandle, SYMNAME);
+	func_t ret = dlsym(sohandle, SYMNAME);
 
 	// free resources and return
 	free(buffer);
@@ -77,22 +101,71 @@ f_t input_and_compile(void) {
 
 // Prompts user to choose input method
 enum optype get_optype(void) {
-	return INT_SIMP;
+prompt_init:
+	fputs("Что вы хотите сделать с функцией?\n"
+		"\t1: решить уравнение f(x) = x\n"
+		"\t2: решить уравнение f(x) = 0\n"
+		"\t3: численно вычислить интеграл f(x)\n"
+		"Введите число: ", stdout);
+	char c;
+	switch (getchar()-'0') {
+		case 1: return SOL_ITERN;
+
+		case 2: 
+		prompt_sol:
+		fputs("\nКаким методом?\n"
+			"\t1: дихтомии (двоичный поиск)\n"
+			"\t2: хорд\n"
+			"\t3: касательных (Ньютона)\n"
+			"Введите число:", stdout);
+		c = getchar() - '0';
+		if (c <= 0 || c > 3) goto prompt_sol;
+		return SOL_BINSR + c - 1;
+
+		case 3: 
+		prompt_int:
+		fputs("\nКаким методом?\n"
+			"\t1: прямоугольников\n"
+			"\t2: трапеций\n"
+			"\t3: Симпсона (парабол)\n"
+			"Введите число: ", stdout);
+		c = getchar() - '0';
+		if (c <= 0 || c > 3) goto prompt_int;
+		return INT_RECT + c - 1;
+
+		default: 
+		puts("\nОшибка: ведите число от 1 до 3");
+		goto prompt_init;
+	}
 }
 
-int main(int argc, char *argv[]) {
-	(void)argc; (void)argv;
-	f_t f = input_and_compile();
+int main(void) {
+	func_t f = input_and_compile();
 	if (!f) goto exit;
-	double sln = sol_binsr(f, 0, 10, 0.001, 0.001);
-	printf("%lf\n", sln);
-	sln = sol_binsr(f, 0, 10, 0.001, 0.001);
-	printf("%lf\n", sln);
-	sln = sol_newtn(f, 5, 0.001, 0.001);
-	printf("%lf\n", sln);
-	sln = sol_itern(f, 0, 0.001, 0.001);
-	printf("%lf\n", sln);
-
+	struct funcdescr descr = functions[get_optype()];
+	double a, b, c, d;
+	printf("Введите %i аргумента через пробел:\n\t%s\n", descr.argc, descr.descr);
+	double res;
+	switch (descr.argc) {
+	case 2:
+		scanf("%lf %lf", &a, &b);
+		res = ((calc2_t)descr.f)(f, a, b);
+		break;
+	case 3:
+		scanf("%lf %lf %lf", &a, &b, &c);
+		res = ((calc3_t)descr.f)(f, a, b, c);
+		break;
+	case 4:
+		scanf("%lf %lf %lf %lf", &a, &b, &c, &d);
+		res = ((calc4_t)descr.f)(f, a, b, c, d);
+		break;
+	default: __builtin_unreachable();
+	}
+	if (!is_root_ok()) {
+		fputs("Корень не посчитан из-за ограничений метода\n", stderr);
+		goto exit;
+	}
+	printf("Результат: %lf\n", res);
 exit:
 	dlclose(sohandle);
 	return 0;
