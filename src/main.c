@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include <unistd.h>
+#include <termios.h>
 #include <sys/fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -104,6 +106,12 @@ exit:
 	return ret;
 }
 
+char _getchar(void) {
+	char ret;
+	while (isspace(ret = getchar()));
+	return ret;
+}
+
 // Prompts user to choose input method
 enum optype get_optype(void) {
 prompt_init:
@@ -113,7 +121,7 @@ prompt_init:
 		"\t3: численно вычислить интеграл f(x)\n"
 		"Введите число: ", stdout);
 	char c;
-	switch (getchar()-'0') {
+	switch (_getchar()-'0') {
 		case 1: return SOL_ITERN;
 
 		case 2: 
@@ -123,7 +131,7 @@ prompt_init:
 			"\t2: хорд\n"
 			"\t3: касательных (Ньютона)\n"
 			"Введите число:", stdout);
-		c = getchar() - '0';
+		c = _getchar() - '0';
 		if (c <= 0 || c > 3) goto prompt_sol;
 		return SOL_BINSR + c - 1;
 
@@ -134,7 +142,7 @@ prompt_init:
 			"\t2: трапеций\n"
 			"\t3: Симпсона (парабол)\n"
 			"Введите число: ", stdout);
-		c = getchar() - '0';
+		c = _getchar() - '0';
 		if (c <= 0 || c > 3) goto prompt_int;
 		return INT_RECT + c - 1;
 
