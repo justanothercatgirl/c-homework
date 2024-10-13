@@ -1,24 +1,16 @@
 
-CFLAGS = -O2 -Wall -Wextra -Werror -Iinclude
+all: 5_1 5_2 5_3
 
-all: task4
+5_1: 5_1.c matrix.c
+	cc -o $@ $^ -lm 
 
-build:
-	mkdir -p build
+5_2: 5_2.c matrix.c
+	cc -o $@ $^ -lm 
 
-build/roots.o: src/roots.c build
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-build/integral.o: src/integral.c build 
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-task4: build/roots.o build/integral.o src/main.c 
-	$(CC) $(CFLAGS) -o $@ $^ -lm -ldl 
+5_3: 5_3.c matrix.c
+	cc -o $@ $^ -lm 
 
 .PHONY: clean
 
-run:
-	./task4
-
 clean:
-	rm -f build/*.o task4
+	rm -f 5_1 5_2 5_3
