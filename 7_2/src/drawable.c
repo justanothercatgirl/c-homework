@@ -4,20 +4,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
-#include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-static struct {
-	enum {CTX_NO, CTX_INIT, CTX_FAIL} init;
-	Display *d;
-	Window r, w;
-	int s;
-	GC gctx;
-	XVisualInfo v;
-	XImage *i;
-	int* data;
-} X11 = { .init=CTX_NO };
+struct X11context X11 = { .init=CTX_NO };
 
 struct drawable drawable_plaintxt(long width, long height) {
 	struct drawable ret;
@@ -31,7 +21,7 @@ struct drawable drawable_X11(long width, long height) {
 	drawable_init(&ret, put_X11, show_X11, width, height, sizeof (int));
 	int* data = ret.data;
 	for (size_t i = 0; i < width*height; ++i)
-		data[i] = 0x00FFFFFF;
+		data[i] = 0xFFFFFFFF;
 	return ret;
 }
 
@@ -76,26 +66,28 @@ void show_plaintxt(const struct drawable *self) {
 
 /// X11 from now on ///
 
-static void init_X11(const struct drawable *self) {
+void init_X11(const struct drawable *self) {
 	X11.d = XOpenDisplay(NULL);
 	if (X11.d == NULL) {
 		X11.init = CTX_FAIL;
+		printf("why tho???\n");
 		return;
 	}
 	X11.s = DefaultScreen(X11.d);
 	X11.r = RootWindow(X11.d, X11.s);
 	X11.gctx = DefaultGC(X11.d, X11.s);
-	Window w = XCreateSimpleWindow(X11.d, X11.r, 0, 0, self->x, self->y, 0, 0, 0x00FFFFFF);
 	if (!XMatchVisualInfo(X11.d, X11.s, 24, TrueColor, &X11.v)) {
 		XDestroyWindow(X11.d, X11.w);
 		XCloseDisplay(X11.d);
 		X11.init = CTX_FAIL;
 		return;
 	};
-	XMapWindow(X11.d, X11.w);
+	X11.w = XCreateSimpleWindow(X11.d, X11.r, 0, 0, self->x, self->y, 0, 0, 0x00FFFFFF);
 	XSelectInput(X11.d, X11.w, ExposureMask);
-	X11.data = malloc(self->x * self->y * sizeof (int));
-	X11.i = XCreateImage(X11.d, X11.v.visual, X11.v.depth, ZPixmap, 0, (void*)X11.data, self->x, self->y, 8*sizeof (int), 0);
+	XMapWindow(X11.d, X11.w);
+	X11.data = self->data;
+	X11.i = XCreateImage(X11.d, X11.v.visual, X11.v.depth, ZPixmap, 0, (void*)X11.data, self->x, self->y, 32, 0);
+	X11.init = CTX_INIT;
 }
 
 void put_X11(struct drawable *self, long x, long y) {
@@ -114,7 +106,8 @@ start:
 		return;
 	}
 	XEvent e = {};
-	XNextEvent(X11.d, &e);
-	XPutImage(X11.d, X11.w, X11.gctx, X11.i, 0, 0, 0, 0, self->x, self->y);
+	while (!XNextEvent(X11.d, &e)) {
+		XPutImage(X11.d, X11.w, X11.gctx, X11.i, 0, 0, 0, 0, self->x, self->y);
+	}
 }
 

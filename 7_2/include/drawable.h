@@ -4,6 +4,19 @@
 #define FILL_CHR '#'
 #define SPACE_CHR ' '
 
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+extern struct X11context {
+	enum {CTX_NO, CTX_INIT, CTX_FAIL} init;
+	Display *d;
+	Window r, w;
+	int s;
+	GC gctx;
+	XVisualInfo v;
+	XImage *i;
+	int* data;
+} X11;
+
 // что угодно, на чём можно ''нарисовать''
 // должно иметь размер, размер пикселей, данные
 // функция put записывает пиксель по координатам x, y на поле
