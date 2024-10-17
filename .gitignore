@@ -1,3 +1,6 @@
 compile_flags.txt
-build/
+.clangd
+*/.clangd
+*build/
 *.o
+.unused.c
